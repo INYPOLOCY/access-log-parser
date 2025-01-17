@@ -1,73 +1,64 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.Scanner;
+import java.io.*;
 
 public class Main {
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        int correctFilesCount = 0;
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
+            while (true) {
+                System.out.println("Введите путь к файлу:");
+                String path = reader.readLine();
+                File file = new File(path);
 
-        while (true) {
-            System.out.println("Введите путь к файлу:");
-            String path = scanner.nextLine();
+                if (!file.exists() || file.isDirectory()) {
+                    System.out.println("Указанный путь неверен: файл не существует или это директория.");
+                    continue;
+                }
 
-            File file = new File(path);
-            boolean fileExists = file.exists();
-            boolean isDirectory = file.isDirectory();
-
-            if (!fileExists || isDirectory) {
-                System.out.println("Указанный путь неверен: файл не существует или это директория.");
-                continue;
-            }
-
-            correctFilesCount++;
-            System.out.println("Путь указан верно");
-            System.out.printf("Это файл номер %d\n", correctFilesCount);
-
-            try {
                 processFile(file);
-            } catch (IOException e) {
-                e.printStackTrace();
-                break;
             }
+        } catch (IOException ignored) {
         }
     }
 
     private static void processFile(File file) throws IOException {
-        int lineCount = 0;
-        int maxLength = 0;
-        int minLength = Integer.MAX_VALUE;
+        int totalLines = 0;
+        int googlebotCount = 0;
+        int yandexBotCount = 0;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                lineCount++;
-                int currentLength = line.length();
-
-                if (currentLength > 1024) {
+                totalLines++;
+                if (line.length() > 1024) {
                     throw new LineTooLongException("Длина строки превышает 1024 символа!");
                 }
 
-                if (currentLength > maxLength) {
-                    maxLength = currentLength;
-                }
-
-                if (currentLength < minLength) {
-                    minLength = currentLength;
+                String userAgent = extractUserAgent(line);
+                if (userAgent.contains("Googlebot")) {
+                    googlebotCount++;
+                } else if (userAgent.contains("YandexBot")) {
+                    yandexBotCount++;
                 }
             }
         }
 
-        System.out.println("Общее количество строк в файле: " + lineCount);
-        System.out.println("Длина самой длинной строки в файле: " + maxLength);
-        System.out.println("Длина самой короткой строки в файле: " + minLength);
-    }
-}
+        System.out.println("Общее количество запросов: " + totalLines);
+        System.out.println("Количество запросов от Googlebot: " + googlebotCount);
+        System.out.println("Количество запросов от YandexBot: " + yandexBotCount);
 
-class LineTooLongException extends RuntimeException {
-    public LineTooLongException(String message) {
-        super(message);
+        if (totalLines > 0) {
+            System.out.printf("Доля запросов от Googlebot: %.2f%%%n", (googlebotCount * 100.0 / totalLines));
+            System.out.printf("Доля запросов от YandexBot: %.2f%%%n", (yandexBotCount * 100.0 / totalLines));
+        }
+    }
+
+    private static String extractUserAgent(String line) {
+        String[] parts = line.split("\"");
+        return parts.length > 5 ? parts[5] : "";
+    }
+
+    private static class LineTooLongException extends RuntimeException {
+        public LineTooLongException(String message) {
+            super(message);
+        }
     }
 }
