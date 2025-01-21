@@ -2,10 +2,10 @@ import java.io.*;
 
 public class Main {
     public static void main(String[] args) {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
+        try (BufferedReader consoleReader = new BufferedReader(new InputStreamReader(System.in))) {
             while (true) {
                 System.out.println("Введите путь к файлу:");
-                String path = reader.readLine();
+                String path = consoleReader.readLine();
                 File file = new File(path);
 
                 if (!file.exists() || file.isDirectory()) {
@@ -15,33 +15,40 @@ public class Main {
 
                 processFile(file);
             }
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            System.out.println("Произошла ошибка ввода-вывода: " + e.getMessage());
         }
     }
 
-    private static void processFile(File file) throws IOException {
+    private static void processFile(File file) {
+        Statistics statistics = new Statistics();
         int totalLines = 0;
         int googlebotCount = 0;
         int yandexBotCount = 0;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+        try (BufferedReader fileReader = new BufferedReader(new FileReader(file))) {
             String line;
-            while ((line = reader.readLine()) != null) {
+            while ((line = fileReader.readLine()) != null) {
                 totalLines++;
-                if (line.length() > 1024) {
-                    throw new LineTooLongException("Длина строки превышает 1024 символа!");
-                }
+                try {
+                    LogEntry logEntry = new LogEntry(line);
+                    statistics.addEntry(logEntry);
 
-                String userAgent = extractUserAgent(line);
-                if (userAgent.contains("Googlebot")) {
-                    googlebotCount++;
-                } else if (userAgent.contains("YandexBot")) {
-                    yandexBotCount++;
+                    String userAgent = logEntry.getUserAgent().getFullUserAgent();
+                    if (userAgent.contains("Googlebot")) {
+                        googlebotCount++;
+                    } else if (userAgent.contains("YandexBot")) {
+                        yandexBotCount++;
+                    }
+                } catch (IllegalArgumentException e) {
+                    System.out.println("Ошибка разбора строки: " + e.getMessage());
                 }
             }
+        } catch (IOException e) {
+            System.out.println("Ошибка чтения файла: " + e.getMessage());
         }
 
-        System.out.println("Общее количество запросов: " + totalLines);
+        System.out.println("Общее количество строк: " + totalLines);
         System.out.println("Количество запросов от Googlebot: " + googlebotCount);
         System.out.println("Количество запросов от YandexBot: " + yandexBotCount);
 
@@ -49,16 +56,8 @@ public class Main {
             System.out.printf("Доля запросов от Googlebot: %.2f%%%n", (googlebotCount * 100.0 / totalLines));
             System.out.printf("Доля запросов от YandexBot: %.2f%%%n", (yandexBotCount * 100.0 / totalLines));
         }
-    }
 
-    private static String extractUserAgent(String line) {
-        String[] parts = line.split("\"");
-        return parts.length > 5 ? parts[5] : "";
-    }
-
-    private static class LineTooLongException extends RuntimeException {
-        public LineTooLongException(String message) {
-            super(message);
-        }
+        System.out.println("Общий объем трафика: " + statistics.getTotalTraffic());
+        System.out.printf("Средний объем трафика за час: %.2f%n", statistics.getTrafficRate());
     }
 }
