@@ -1,4 +1,5 @@
 import java.io.*;
+import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
@@ -48,6 +49,7 @@ public class Main {
             System.out.println("Ошибка чтения файла: " + e.getMessage());
         }
 
+        // Вывод статистики
         System.out.println("Общее количество строк: " + totalLines);
         System.out.println("Количество запросов от Googlebot: " + googlebotCount);
         System.out.println("Количество запросов от YandexBot: " + yandexBotCount);
@@ -59,5 +61,16 @@ public class Main {
 
         System.out.println("Общий объем трафика: " + statistics.getTotalTraffic());
         System.out.printf("Средний объем трафика за час: %.2f%n", statistics.getTrafficRate());
+
+         System.out.println("Существующие страницы с кодом 200:");
+        for (String page : statistics.getExistingPages()) {
+            System.out.println(page);
+        }
+
+        System.out.println("Статистика по операционным системам:");
+        Map<String, Integer> osFrequency = statistics.getOsFrequency();
+        for (Map.Entry<String, Integer> entry : osFrequency.entrySet()) {
+            System.out.println(entry.getKey() + ": " + entry.getValue());
+        }
     }
 }
