@@ -1,4 +1,5 @@
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,6 +16,9 @@ public class Statistics {
     private long normalUserVisits;
     private long errorRequestsCount;
     private final Set<String> uniqueUserIPs;
+    private final Map<Long, Integer> visitsPerSecond;
+    private final Set<String> refererDomains;
+    private final Map<String, Integer> userVisits;
 
     public Statistics() {
         this.totalTraffic = 0;
@@ -27,6 +31,9 @@ public class Statistics {
         this.normalUserVisits = 0;
         this.errorRequestsCount = 0;
         this.uniqueUserIPs = new HashSet<>();
+        this.visitsPerSecond = new HashMap<>();
+        this.refererDomains = new HashSet<>();
+        this.userVisits = new HashMap<>();
     }
 
     public void addEntry(LogEntry logEntry) {
@@ -69,7 +76,55 @@ public class Statistics {
         if (!userAgent.toLowerCase().contains("bot")) {
             normalUserVisits++;
             uniqueUserIPs.add(logEntry.getIpAddress());
+
+            String ipAddress = logEntry.getIpAddress();
+            if (userVisits.containsKey(ipAddress)) {
+                userVisits.put(ipAddress, userVisits.get(ipAddress) + 1);
+            } else {
+                userVisits.put(ipAddress, 1);
+            }
+
+            long second = entryTime.toEpochSecond(ZoneOffset.UTC);
+
+            if (visitsPerSecond.containsKey(second)) {
+                visitsPerSecond.put(second, visitsPerSecond.get(second) + 1);
+            } else {
+                visitsPerSecond.put(second, 1);
+
+            }
         }
+        if (logEntry.getReferer() != null) {
+            String domain = extractDomainFromReferer(logEntry.getReferer());
+            if (domain != null) {
+                refererDomains.add(domain);
+
+            }
+        }
+    }
+
+    private String extractDomainFromReferer(String referer) {
+        try {
+            String domain = referer.replaceFirst("^(https?://)?(www\\.)?", "");
+            int slashIndex = domain.indexOf('/');
+            if (slashIndex != -1) {
+                domain = domain.substring(0, slashIndex);
+            }
+            return domain;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public Set<String> getRefererDomains() {
+        return refererDomains;
+    }
+
+
+    public int getPeakVisitsPerSecond() {
+        if (visitsPerSecond.isEmpty()) {
+            return 0;
+        }
+        return Collections.max(visitsPerSecond.values());
     }
 
     public double getAverageVisitsPerUser() {
@@ -128,6 +183,13 @@ public class Statistics {
         }
         long hours = ChronoUnit.HOURS.between(minTime, maxTime);
         return hours > 0 ? (double) normalUserVisits / hours : normalUserVisits;
+    }
+
+    public int getMaxVisitsPerUser() {
+        if (userVisits.isEmpty()) {
+            return 0;
+        }
+        return Collections.max(userVisits.values());
     }
 
     private String extractOsFromUserAgent(String userAgent) {

@@ -62,7 +62,7 @@ public class Main {
 
 
         System.out.println("Общее количество строк: " + totalLines);
-/*        System.out.println("Количество запросов от Googlebot: " + googlebotCount);
+        System.out.println("Количество запросов от Googlebot: " + googlebotCount);
         System.out.println("Количество запросов от YandexBot: " + yandexBotCount);
 
         if (totalLines > 0) {
@@ -72,7 +72,7 @@ public class Main {
 
         System.out.println("Общий объем трафика: " + statistics.getTotalTraffic());
         System.out.printf("Средний объем трафика за час: %.2f%n", statistics.getTrafficRate());
-
+/*
         System.out.println("Существующие страницы с кодом 200:");
         for (String page : statistics.getExistingPages()) {
             System.out.println(page);
@@ -100,5 +100,14 @@ public class Main {
         System.out.printf("Среднее количество ошибочных запросов в час : %.2f%n", statistics.getAverageErrorRequestsPerHour());
 
         System.out.printf("Средняя посещаемость одним пользователем: %.2f%n", statistics.getAverageVisitsPerUser());
+
+        System.out.printf("Пиковая посещаемость за секунду: %d%n", statistics.getPeakVisitsPerSecond());
+
+        System.out.println("Сайты, со страниц которых есть ссылки на текущий сайт:");
+        for (String domain : statistics.getRefererDomains()) {
+            System.out.println(domain);
+        }
+
+        System.out.printf("Максимальная посещаемость одним пользователем: %d%n", statistics.getMaxVisitsPerUser());
     }
 }
