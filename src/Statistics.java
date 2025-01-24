@@ -10,14 +10,19 @@ public class Statistics {
     private LocalDateTime minTime;
     private LocalDateTime maxTime;
     private final Set<String> existingPages;
-    private final Map<String, Integer> osFrequency; // Для подсчета частоты операционных систем
+    private final Set<String> nonExistentPages;
+    private final Map<String, Integer> osFrequency;
+    private final Map<String, Integer> browserFrequency;
+
 
     public Statistics() {
         this.totalTraffic = 0;
         this.minTime = null;
         this.maxTime = null;
         this.existingPages = new HashSet<>();
+        this.nonExistentPages = new HashSet<>();
         this.osFrequency = new HashMap<>();
+        this.browserFrequency = new HashMap<>();
     }
 
     public void addEntry(LogEntry logEntry) {
@@ -33,6 +38,8 @@ public class Statistics {
 
         if (logEntry.getResponseCode() == 200) {
             existingPages.add(logEntry.getRequestPath());
+        } else if (logEntry.getResponseCode() == 404) {
+            nonExistentPages.add(logEntry.getRequestPath());
         }
 
         String userAgent = logEntry.getUserAgent().getFullUserAgent();
@@ -42,6 +49,12 @@ public class Statistics {
             osFrequency.put(os, osFrequency.get(os) + 1);
         } else {
             osFrequency.put(os, 1);
+        }
+        String browser = extractBrowserFromUserAgent(userAgent);
+        if (browserFrequency.containsKey(browser)) {
+            browserFrequency.put(browser, browserFrequency.get(browser) + 1);
+        } else {
+            browserFrequency.put(browser, 1);
         }
     }
 
@@ -61,9 +74,35 @@ public class Statistics {
         return this.existingPages;
     }
 
+    public Set<String> getNonExistentPages() {
+        return this.nonExistentPages;
+    }
+
     public Map<String, Integer> getOsFrequency() {
         return this.osFrequency;
     }
+
+    public Map<String, Double> getBrowserStatistics() {
+        Map<String, Double> browserStatistics = new HashMap<>();
+        int totalBrowsers = 0;
+
+        for (Integer count : browserFrequency.values()) {
+            totalBrowsers += count;
+        }
+
+        if (totalBrowsers > 0) {
+            for (String browser : browserFrequency.keySet()) {
+                int count = browserFrequency.get(browser);
+                double percentage = (double) count / totalBrowsers;
+                browserStatistics.put(browser, percentage);
+            }
+        }
+
+
+        return browserStatistics;
+
+    }
+
     private String extractOsFromUserAgent(String userAgent) {
         int startIndex = userAgent.indexOf('(') + 1;
         int endIndex = userAgent.indexOf(';', startIndex);
@@ -71,5 +110,15 @@ public class Statistics {
             return userAgent.substring(startIndex, endIndex).trim();
         }
         return "Unknown OS";
+    }
+
+    private String extractBrowserFromUserAgent(String userAgent) {
+        int startIndex = 0;
+        int endIndex = userAgent.indexOf(' ');
+
+        if (endIndex > startIndex) {
+            return userAgent.substring(startIndex, endIndex).trim();
+        }
+        return "Unknown Browser";
     }
 }
