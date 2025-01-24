@@ -1,9 +1,8 @@
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
+
 
 public class Statistics {
     private long totalTraffic;
@@ -13,7 +12,9 @@ public class Statistics {
     private final Set<String> nonExistentPages;
     private final Map<String, Integer> osFrequency;
     private final Map<String, Integer> browserFrequency;
-
+    private long normalUserVisits;
+    private long errorRequestsCount;
+    private final Set<String> uniqueUserIPs;
 
     public Statistics() {
         this.totalTraffic = 0;
@@ -23,6 +24,9 @@ public class Statistics {
         this.nonExistentPages = new HashSet<>();
         this.osFrequency = new HashMap<>();
         this.browserFrequency = new HashMap<>();
+        this.normalUserVisits = 0;
+        this.errorRequestsCount = 0;
+        this.uniqueUserIPs = new HashSet<>();
     }
 
     public void addEntry(LogEntry logEntry) {
@@ -42,6 +46,11 @@ public class Statistics {
             nonExistentPages.add(logEntry.getRequestPath());
         }
 
+        if (logEntry.getResponseCode() >= 400 && logEntry.getResponseCode() < 600) {
+            errorRequestsCount++;
+
+        }
+
         String userAgent = logEntry.getUserAgent().getFullUserAgent();
         String os = extractOsFromUserAgent(userAgent);
 
@@ -56,6 +65,27 @@ public class Statistics {
         } else {
             browserFrequency.put(browser, 1);
         }
+
+        if (!userAgent.toLowerCase().contains("bot")) {
+            normalUserVisits++;
+            uniqueUserIPs.add(logEntry.getIpAddress());
+        }
+    }
+
+    public double getAverageVisitsPerUser() {
+        if (uniqueUserIPs.isEmpty()) {
+            return 0;
+        }
+        return (double) normalUserVisits / uniqueUserIPs.size();
+    }
+
+    public double getAverageErrorRequestsPerHour() {
+        if (minTime == null || maxTime == null || minTime.equals(maxTime)) {
+            return 0;
+        }
+
+        long hours = ChronoUnit.HOURS.between(minTime, maxTime);
+        return hours > 0 ? (double) errorRequestsCount / hours : errorRequestsCount;
     }
 
     public long getTotalTraffic() {
@@ -71,36 +101,33 @@ public class Statistics {
     }
 
     public Set<String> getExistingPages() {
-        return this.existingPages;
+        return existingPages;
     }
 
     public Set<String> getNonExistentPages() {
-        return this.nonExistentPages;
+        return nonExistentPages;
     }
 
     public Map<String, Integer> getOsFrequency() {
-        return this.osFrequency;
+        return osFrequency;
     }
 
     public Map<String, Double> getBrowserStatistics() {
-        Map<String, Double> browserStatistics = new HashMap<>();
-        int totalBrowsers = 0;
+        int totalBrowsers = browserFrequency.values().stream().mapToInt(Integer::intValue).sum();
 
-        for (Integer count : browserFrequency.values()) {
-            totalBrowsers += count;
+        return browserFrequency.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> (double) entry.getValue() / totalBrowsers
+                ));
+    }
+
+    public double getAverageVisitsPerHour() {
+        if (minTime == null || maxTime == null || minTime.equals(maxTime) || normalUserVisits == 0) {
+            return 0;
         }
-
-        if (totalBrowsers > 0) {
-            for (String browser : browserFrequency.keySet()) {
-                int count = browserFrequency.get(browser);
-                double percentage = (double) count / totalBrowsers;
-                browserStatistics.put(browser, percentage);
-            }
-        }
-
-
-        return browserStatistics;
-
+        long hours = ChronoUnit.HOURS.between(minTime, maxTime);
+        return hours > 0 ? (double) normalUserVisits / hours : normalUserVisits;
     }
 
     private String extractOsFromUserAgent(String userAgent) {

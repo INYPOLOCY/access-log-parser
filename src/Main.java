@@ -34,7 +34,18 @@ public class Main {
                 try {
                     LogEntry logEntry = new LogEntry(line);
                     statistics.addEntry(logEntry);
-
+/*
+                    System.out.println("Обработанная строка лога:");
+                    System.out.println("IP: " + logEntry.getIpAddress());
+                    System.out.println("Дата и время: " + logEntry.getDateTime());
+                    System.out.println("Метод: " + logEntry.getMethod());
+                    System.out.println("Путь запроса: " + logEntry.getRequestPath());
+                    System.out.println("Код ответа: " + logEntry.getResponseCode());
+                    System.out.println("Размер данных: " + logEntry.getDataSize());
+                    System.out.println("Referer: " + (logEntry.getReferer() != null ? logEntry.getReferer() : "отсутствует"));
+                    System.out.println("User-Agent: " + logEntry.getUserAgent().getFullUserAgent());
+                    System.out.println("----------------------------------------");
+*/
                     String userAgent = logEntry.getUserAgent().getFullUserAgent();
                     if (userAgent.contains("Googlebot")) {
                         googlebotCount++;
@@ -49,9 +60,9 @@ public class Main {
             System.out.println("Ошибка чтения файла: " + e.getMessage());
         }
 
-        // Вывод статистики
+
         System.out.println("Общее количество строк: " + totalLines);
-        System.out.println("Количество запросов от Googlebot: " + googlebotCount);
+/*        System.out.println("Количество запросов от Googlebot: " + googlebotCount);
         System.out.println("Количество запросов от YandexBot: " + yandexBotCount);
 
         if (totalLines > 0) {
@@ -82,8 +93,12 @@ public class Main {
         System.out.println("Статистика браузеров:");
         for (Map.Entry<String, Double> entry : statistics.getBrowserStatistics().entrySet()) {
             System.out.printf("%s: %.2f%%%n", entry.getKey(), entry.getValue() * 100);
-
-
         }
+*/
+        System.out.printf("Среднее количество посещений за час (только обычные пользователи): %.2f%n", statistics.getAverageVisitsPerHour());
+
+        System.out.printf("Среднее количество ошибочных запросов в час : %.2f%n", statistics.getAverageErrorRequestsPerHour());
+
+        System.out.printf("Средняя посещаемость одним пользователем: %.2f%n", statistics.getAverageVisitsPerUser());
     }
 }

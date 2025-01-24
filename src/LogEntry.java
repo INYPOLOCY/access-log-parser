@@ -13,7 +13,7 @@ public class LogEntry {
     private final UserAgent userAgent;
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(
-            "dd/MMM/yyyy:HH:mm:ss Z", Locale.ENGLISH
+            "dd/MMM/yyyy:HH:mm:ss Z", Locale.ROOT
     );
 
     public LogEntry(String logLine) {
